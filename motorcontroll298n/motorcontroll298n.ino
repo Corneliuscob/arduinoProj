@@ -12,8 +12,8 @@
 
 
 //init software serial pins as A0 and A1 as 14,15
-#define SERIAL_RX = 14;
-#define SERIAL_TX = 15;
+#define SERIAL_RX  14
+#define SERIAL_TX  15
 SoftwareSerial BTserial(SERIAL_RX, SERIAL_TX); // RX | TX
 
 
@@ -47,7 +47,8 @@ SoftwareSerial BTserial(SERIAL_RX, SERIAL_TX); // RX | TX
 motor motorOne, motorTwo, motorThree,motorFour;
 
 void setup()
-{
+{ 
+
   Serial.begin(9600);
 
   // Set PWM & direction pins to output for front motor Driver
@@ -77,63 +78,76 @@ void setup()
   sendToMotorTwo();
   sendToMotorThree();
   sendToMotorFour();
+
+  BTserial.begin(9600);  
+
+  BTserial.println("Bluetooth Serial Started");
 }
 
 void loop()
 {
-  Serial.println("Motors are stopped now");
-  Serial.println("Set direction FORWARD");
-  delay(2000);
+     String receivedString = "blank";
+    // Keep reading from HC-06 and send to Arduino Serial Monitor
+    if (BTserial.available()>0)
+    {  
+        int numChars = BTserial.available();
+        // Call the function to convert the available characters to a string
+        receivedString = readSerialString(numChars);
+        // Process the received string
+        // processReceivedString(receivedString);
+        // displayAction(receivedString);
+        int driveCode = performAction(receivedString);
 
-  setMotorDirectionForward(motorOne);
-  setMotorDirectionForward(motorTwo);
-  setMotorDirectionForward(motorThree);
-  setMotorDirectionForward(motorFour);
+         if (driveCode == 1) {
+            // Action 1
+            driveForwards();
+          } else if (driveCode == 2) {
+            // Action 2
+            driveBackwards();
+          } else if (driveCode == 3) {
+            // Action 3
+            driveLeft();
+          } else if (driveCode == 4) {
+            // Action 4
+            driveRight();
+    }
 
-  Serial.println("Gradually increase motors speed to max");
-
-  increaseMotorsSpeed();
-  
-  Serial.println("Motors are on full speed now");
-  delay(2000);
-  Serial.println("Gradually decrease motors speed to min");
-
-  decreaseMotorsSpeed();
-
-  Serial.println("Motors are stopped now");
-  Serial.println("Set direction BACKWARD");
-  delay(2000);
-
-  setMotorDirectionBackward(motorOne);
-  setMotorDirectionBackward(motorTwo);
-  setMotorDirectionBackward(motorThree);
-  setMotorDirectionBackward(motorFour);
-
-  Serial.println("Gradually increase motors speed to max");
-
-  increaseMotorsSpeed();
-
-  Serial.println("Motors are on full speed now");
-  delay(2000);
-  Serial.println("Gradually decrease motors speed to min");
-
-  decreaseMotorsSpeed();
+    }
+         
+        // BTserial.write("processed");
+    // Keep reading from Arduino Serial Monitor and send to HC-06
+    if (Serial.available())
+    {
+        BTserial.write(Serial.read());
+    }
+  delay(60);
 
 }
-void driveForwards(){
 
-  int speed =200;
+///////////////////////////Motor functions///////////////////////////////
+void driveForwards(){
+ BTserial.println("driving forwards.");
+  for (int speed = 50; speed <= 255; speed++) {
+    setMotorDirectionForward(motorOne);
+    setMotorDirectionForward(motorTwo);
+    setMotorDirectionForward(motorThree);
+    setMotorDirectionForward(motorFour);
+
     setMotorSpeed(motorOne, speed);
     setMotorSpeed(motorTwo, speed);
     setMotorSpeed(motorThree, speed);
     setMotorSpeed(motorFour, speed);
+      
     sendToMotorOne();
     sendToMotorTwo();
     sendToMotorThree();
     sendToMotorFour();
 
+    delay(20); // Add small delay between changes
+  }
+
     delay(2000);
-  for (speed; speed >= 0; speed--) {
+  for (int speed = 255; speed >= 0; speed--) {
   
 
     setMotorSpeed(motorOne, speed);
@@ -145,10 +159,22 @@ void driveForwards(){
     sendToMotorTwo();
     sendToMotorThree();
     sendToMotorFour();
-  
+  delay(20);
   }
-
+BTserial.println("driving forwards complete");
 }
+
+void driveBackwards(){
+  return 0;
+};
+// Action 3
+void driveLeft(){
+  return 0;
+};
+// Action 4
+void driveRight(){
+  return 0;
+};
 
 void sendToMotorTwo(){
   sendToMotor(motorTwo, ENA_PIN_FRONT, IN1_PIN_FRONT, IN2_PIN_FRONT);
@@ -204,3 +230,21 @@ void decreaseMotorsSpeed()
   }
 }
 
+/////////////////////////////Bluetooth functions 
+String readSerialString(int numChars) {
+  String result = ""; // Initialize an empty String
+
+  // Read each character from the serial buffer and append it to the result string
+  for (int i = 0; i < numChars; ++i) {
+    char incomingByte = BTserial.read();
+    result += incomingByte;
+  }
+
+  return result;
+}
+
+// void processReceivedString(String str) {
+//   // Process the received string as needed
+  
+//   Serial.println((int)str);
+// }
